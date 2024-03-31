@@ -86,6 +86,49 @@ struct xt_node *xt_last(struct xt_node *n)
     return xt_last(xt_right(n));
 }
 
+static inline void xt_rotate_left(struct xt_node *n, int direct)
+{
+    struct xt_node *l = xt_left(n), *p = xt_parent(n);
+
+    /*ture: LR, false: LL*/
+    if(direct){
+        struct xt_node *lr = xt_right(l);
+        if(p && xt_left(p) == n){
+            xt_left(p) = lr;
+        }else if(p){
+            xt_right(p) = lr;
+        }
+        xt_parent(lr) = p;
+        xt_left(n) = xt_right(lr);
+        xt_right(l) = xt_left(lr);
+        if(xt_right(lr)){
+            xt_rparent(lr) = n;
+        }
+        if(xt_left(lr)){
+            xt_lparent(lr) = l;
+        }
+        xt_parent(n) = lr;
+        xt_parent(l) = lr;
+        xt_left(lr) = l;
+        xt_right(lr) = n;
+    }else{
+        if(p && xt_left(p) == n){
+            xt_left(p) = l;
+        }else if(p){
+            xt_right(p) = l;
+        }
+        xt_parent(l) = p;
+        xt_left(n) = xt_right(l);
+        if(xt_right(l)){
+            xt_rparent(l) = n;
+        }
+        xt_right(l) = n;
+        xt_parent(n) = l;
+    }
+}
+
+/*
+ *
 static inline void xt_rotate_left(struct xt_node *n)
 {
     struct xt_node *l = xt_left(n), *p = xt_parent(n);
@@ -103,7 +146,52 @@ static inline void xt_rotate_left(struct xt_node *n)
     if (xt_left(n))
         xt_lparent(n) = n;
 }
+ *
+ */
 
+static inline void xt_rotate_right(struct xt_node *n, int direct)
+{
+    struct xt_node *r = xt_right(n), *p = xt_parent(n);
+
+    /*ture: RL, false: RR*/
+    if(direct){
+        struct xt_node *rl = xt_left(r);
+        if(p && xt_left(p) == n){
+            xt_left(p) = rl;
+        }else if(p){
+            xt_right(p) = rl;
+        }
+        xt_parent(rl) = p;
+        xt_right(n) = xt_left(rl);
+        xt_left(r) = xt_right(rl);
+        if(xt_left(rl)){
+            xt_lparent(rl) = n;
+        }
+        if(xt_right(rl)){
+            xt_rparent(rl) = r;
+        }
+        xt_parent(n) = rl;
+        xt_parent(r) = rl;
+        xt_right(rl) = r;
+        xt_left(rl) = n;
+    }else{
+        if(p && xt_left(p) == n){
+            xt_left(p) = r;
+        }else if(p){
+            xt_right(p) = r;
+        }
+        xt_parent(r) = p;
+        xt_right(n) = xt_left(r);
+        if(xt_left(r)){
+            xt_lparent(r) = n;
+        }
+        xt_left(r) = n;
+        xt_parent(n) = r;
+    }
+}
+
+/*
+ *
 static inline void xt_rotate_right(struct xt_node *n)
 {
     struct xt_node *r = xt_right(n), *p = xt_parent(n);
@@ -121,6 +209,8 @@ static inline void xt_rotate_right(struct xt_node *n)
     if (xt_right(n))
         xt_rparent(n) = n;
 }
+ *
+ */
 
 static inline int xt_balance(struct xt_node *n)
 {
@@ -156,19 +246,31 @@ static inline void xt_update(struct xt_node **root, struct xt_node *n)
     int b = xt_balance(n);
     int prev_hint = n->hint;
     struct xt_node *p = xt_parent(n);
-
+    
+    /* leaning to the right */
     if (b < -1) {
-        /* leaning to the right */
-        if (n == *root)
-            *root = xt_right(n);
-        xt_rotate_right(n);
+        if(xt_balance(xt_right(n)) > 0){
+            if (n == *root)
+                *root = xt_left(n->right);
+            xt_rotate_right(n,1);
+        }else if(xt_balance(xt_right(n)) <= 0){
+            if (n == *root)
+                *root = xt_right(n);
+            xt_rotate_right(n,0);
+        }    
     }
 
+    /* leaning to the left */
     else if (b > 1) {
-        /* leaning to the left */
-        if (n == *root)
-            *root = xt_left(n);
-        xt_rotate_left(n);
+        if(xt_balance(xt_left(n)) < 0){
+            if (n == *root)
+                *root = xt_right(n->left);
+            xt_rotate_left(n,1);
+        }else if(xt_balance(xt_left(n)) >= 0){
+            if (n == *root)
+                *root = xt_left(n);
+            xt_rotate_left(n,0);
+        }
     }
 
     n->hint = xt_max_hint(n);

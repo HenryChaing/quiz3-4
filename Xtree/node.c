@@ -117,8 +117,10 @@ void rotate (Tree *tree, Node *sub_root){
         node->parent = grand->parent;
         parent->right =  node->left;
         grand->left = node->right;
-        node->left->parent = parent;
-        node->right->parent = grand;
+        if(node->left)    
+            node->left->parent = parent;
+        if(node->right) 
+            node->right->parent = grand;
         node->left = parent;
         node->right = grand;
         parent->parent = node;
